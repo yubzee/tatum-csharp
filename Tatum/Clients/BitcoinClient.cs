@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Http;
 using System.Security;
+using NBitcoin;
 
 
 namespace Tatum
@@ -25,42 +26,43 @@ namespace Tatum
 
 
 
-        public async Task<Bitcoin> GenerateBitcoinWallet(string mnemonic)
+        Wallets IBitcoinClient.CreateWallet(string mnemonic, bool testnet)
         {
-           
+            var xPub = new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(testnet ? Constants.TestKeyDerivationPath : Constants.BtcKeyDerivationPath))
+                .Neuter();
 
-            var stringResult = await GetSecureRequest($"wallet?mnemonic=" + mnemonic);
-
-            var result = JsonConvert.DeserializeObject<Bitcoin>(stringResult);
-
-            return result;
+            return new Wallets
+            {
+                Mnemonic = mnemonic,
+                XPub = xPub.ToString(testnet ? Network.TestNet : Network.Main)
+            };
         }
 
 
-        public async Task<Bitcoin> GenerateBitcoinDepositAddressFromPublicKey(string xpub, int index)
+        string IBitcoinClient.GeneratePrivateKey(string mnemonic, int index, bool testnet)
         {
+            return new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(testnet ? Constants.TestKeyDerivationPath : Constants.BtcKeyDerivationPath))
+                .Derive(Convert.ToUInt32(index))
+                .PrivateKey
+                .GetWif(testnet ? Network.TestNet : Network.Main)
+                .ToString();
+        }
 
-
-            var stringResult = await GetSecureRequest($"address/{xpub}/{index}");
-
-            var result = JsonConvert.DeserializeObject<Bitcoin>(stringResult);
-
-            return result;
+        string IBitcoinClient.GenerateAddress(string xPubString, int index, bool testnet)
+        {
+            return ExtPubKey.Parse(xPubString, testnet ? Network.TestNet : Network.Main)
+                .Derive(Convert.ToUInt32(index))
+                .PubKey
+                .GetAddress(ScriptPubKeyType.Legacy, testnet ? Network.TestNet : Network.Main)
+                .ToString();
         }
 
 
-        public async Task<Bitcoin> GenerateBitcoinPrivateKey(string index, int mnemonic)
-        {
 
-            string parameters = "{\"index\":" + "\"" + index + "" + "\",\"mnemonic\":" + "\"" + mnemonic + "" + "\"}";
-
-
-            var stringResult = await PostSecureRequest($"wallet/priv",parameters);
-
-            var result = JsonConvert.DeserializeObject<Bitcoin>(stringResult);
-
-            return result;
-        }
 
 
         public async Task<Bitcoin> GetBlockchainInfo()

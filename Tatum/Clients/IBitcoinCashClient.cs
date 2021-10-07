@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Threading.Tasks;
 
+
 /// <summary>
 /// Summary description for IBitcoinCashClient
 /// </summary>
@@ -11,11 +12,12 @@ namespace Tatum
 {
     public interface IBitcoinCashClient
     {
-        Task<BitcoinCash> GenerateBitcoinCashWallet(string mnemonic);
 
-        Task<BitcoinCash> GenerateBitcoinCashDepositAddressFromPublicKey(string xpub, int index);
-        Task<BitcoinCash> GenerateBitcoinCashPrivateKey(string index, int mnemonic);
-        Task<BitcoinCash> GetBitcoinCashBlockchainInfo();
+        Wallets CreateWallet( string mnemonic, bool testnet);
+        String GeneratePrivateKey(string mnemonic, int index, bool testnet);
+        String GenerateAddress(string xPubString, int index, bool testnet);
+
+        Task<BitcoinCash> GetBlockchainInfo();
         Task<BitcoinCash> GetBitcoinCashBlockHash(int i);
         Task<BitcoinCash> GetBitcoinCashBlockByHash(string hash);
         Task<BitcoinCash> GetBitcoinCashTransactionByHash(string hash);

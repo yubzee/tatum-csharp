@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Http;
 using System.Security;
+using NBitcoin;
+using NBitcoin.Altcoins;
 
 /// <summary>
 /// Summary description for BitcoinCashClient
@@ -17,7 +19,7 @@ using System.Security;
 /// 
 namespace Tatum
 {
-    public class BitcoinCashClient
+    public class BitcoinCashClient : IBitcoinCashClient
     {
         private readonly string _privateKey;
         public BitcoinCashClient(string privateKey)
@@ -26,17 +28,40 @@ namespace Tatum
         }
 
 
-        public async Task<BitcoinCash> GenerateBitcoinCashWallet(string mnemonic)
+
+        Wallets IBitcoinCashClient.CreateWallet(string mnemonic, bool testnet)
         {
+            var xPub = new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(Constants.BchKeyDerivationPath))
+                .Neuter();
 
-
-            var stringResult = await GetSecureRequest($"wallet?mnemonic=" + mnemonic);
-
-            var result = JsonConvert.DeserializeObject<BitcoinCash>(stringResult);
-
-            return result;
+            return new Wallets
+            {
+                Mnemonic = mnemonic,
+                XPub = xPub.ToString(testnet ? BCash.Instance.Testnet : BCash.Instance.Mainnet)
+            };
         }
 
+        string IBitcoinCashClient.GeneratePrivateKey(string mnemonic, int index, bool testnet)
+        {
+            return new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(Constants.BchKeyDerivationPath))
+                .Derive(Convert.ToUInt32(index))
+                .PrivateKey
+                .GetWif(testnet ? BCash.Instance.Testnet : BCash.Instance.Mainnet)
+                .ToString();
+        }
+
+        string IBitcoinCashClient.GenerateAddress(string xPubString, int index, bool testnet)
+        {
+            return ExtPubKey.Parse(xPubString, testnet ? BCash.Instance.Testnet : BCash.Instance.Mainnet)
+                .Derive(Convert.ToUInt32(index))
+                .PubKey
+                .GetAddress(ScriptPubKeyType.Legacy, testnet ? BCash.Instance.Testnet : BCash.Instance.Mainnet)
+                .ToString();
+        }
 
 
 
@@ -99,28 +124,7 @@ namespace Tatum
             return result;
         }
 
-        public async Task<BitcoinCash> GenerateBitcoinCashDepositAddressFromPublicKey(string xpub, int index)
-        {
-
-
-            var stringResult = await GetSecureRequest($"address/{xpub}/{index}");
-
-            var result = JsonConvert.DeserializeObject<BitcoinCash>(stringResult);
-
-            return result;
-        }
-
-        public async Task<BitcoinCash> GenerateBitcoinCashPrivateKey(string index, int mnemonic)
-        {
-
-            string parameters = "{\"index\":" + "\"" + index + "" + "\",\"mnemonic\":" + "\"" + mnemonic + "" + "\"}";
-
-            var stringResult = await PostSecureRequest($"wallet/priv", parameters);
-
-            var result = JsonConvert.DeserializeObject<BitcoinCash>(stringResult);
-
-            return result;
-        }
+   
 
 
         public async Task<BitcoinCash> SendBitcoinCashTransactionFromUTXO(string txHash, int index, string privateKey, string toAddress, string value)

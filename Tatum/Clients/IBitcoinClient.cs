@@ -11,10 +11,12 @@ namespace Tatum
 {
     public interface IBitcoinClient
     {
-        Task<Bitcoin> GenerateBitcoinWallet(string mnemonic);
 
-        Task<Bitcoin> GenerateBitcoinDepositAddressFromPublicKey(string xpub,int index);
-        Task<Bitcoin> GenerateBitcoinPrivateKey(string index, int mnemonic);
+        Wallets CreateWallet(string mnemonic, bool testnet);
+        String GeneratePrivateKey(string mnemonic,int index, bool testnet);
+        String GenerateAddress(string xPubString, int index, bool testnet);
+       
+       
         Task<Bitcoin> GetBlockchainInfo();
         Task<Bitcoin> GetBlockHash(int i);
         Task<Bitcoin> GetBlockByHash(string hash);

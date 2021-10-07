@@ -11,19 +11,20 @@ namespace Tatum
 {
     public interface ILitecoinClient
     {
-        Task<Litecoin> GenerateLitecoinWallet(string mnemonic);
+        Wallets CreateWallet(string mnemonic, bool testnet);
+        String GeneratePrivateKey(string mnemonic, int index, bool testnet);
+        String GenerateAddress(string xPubString, int index, bool testnet);
 
-       
+
         Task<Litecoin> GetLitecoinBlockchainInfo();
         Task<Litecoin> GetLitecoinBlockHash(int i);
         Task<Litecoin> GetLitecoinBlockByHash(string hash);
         Task<Litecoin> GetLitecoinTransactionByHash(string hash);
         Task<List<Litecoin>> GetMempoolTransactions();
-        Task<List<Litecoin>> GetLitecoinTransactionsByAddress(string address);
+        Task<List<Litecoin>> GetLitecoinTransactionsByAddress(string address, int pageSize = 50, int offset = 0);
         Task<Litecoin> GetLitecoinBalanceOfAddress(string address);
         Task<Litecoin> GetLitecoinUTXOTransaction(string hash,int index);
-        Task<Litecoin> GenerateLitecoinDepositAddressFromPublicKey(string xpub, int index);
-        Task<Litecoin> GenerateLitecoinPrivateKey(string index, int mnemonic);
+ 
 
 
         Task<Litecoin> SendLitecoinTransactionAddress(string fromaddress, string privateKey, string toAddress, string value);

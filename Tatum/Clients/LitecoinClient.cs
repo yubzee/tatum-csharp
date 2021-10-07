@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Microsoft.Extensions.Http;
 using System.Security;
+using NBitcoin;
+using Tatum.Blockchain;
 
 /// <summary>
 /// Summary description for LitecoinClient
@@ -17,7 +19,7 @@ using System.Security;
 /// 
 namespace Tatum
 {
-    public class LitecoinClient
+    public class LitecoinClient:ILitecoinClient
     {
         private readonly string _privateKey;
         public LitecoinClient(string privateKey)
@@ -27,17 +29,40 @@ namespace Tatum
 
 
 
-
-        public async Task<Litecoin> GenerateLitecoinWallet(string mnemonic)
+        Wallets ILitecoinClient.CreateWallet(string mnemonic, bool testnet)
         {
+            var xPub = new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(testnet ? Constants.TestKeyDerivationPath : Constants.LtcKeyDerivationPath))
+                .Neuter();
 
-
-            var stringResult = await GetSecureRequest($"wallet?mnemonic=" + mnemonic);
-
-            var result = JsonConvert.DeserializeObject<Litecoin>(stringResult);
-
-            return result;
+            return new Wallets
+            {
+                Mnemonic = mnemonic,
+                XPub = xPub.ToString(testnet ? LitecoinTatum.Instance.Testnet : LitecoinTatum.Instance.Mainnet)
+            };
         }
+
+        string ILitecoinClient.GeneratePrivateKey(string mnemonic, int index, bool testnet)
+        {
+            return new Mnemonic(mnemonic)
+                .DeriveExtKey()
+                .Derive(new KeyPath(testnet ? Constants.TestKeyDerivationPath : Constants.LtcKeyDerivationPath))
+                .Derive(Convert.ToUInt32(index))
+                .PrivateKey
+                .GetWif(testnet ? LitecoinTatum.Instance.Testnet : LitecoinTatum.Instance.Mainnet)
+                .ToString();
+        }
+
+        string ILitecoinClient.GenerateAddress(string xPubString, int index, bool testnet)
+        {
+            return ExtPubKey.Parse(xPubString, testnet ? LitecoinTatum.Instance.Testnet : LitecoinTatum.Instance.Mainnet)
+                .Derive(Convert.ToUInt32(index))
+                .PubKey
+                .GetAddress(ScriptPubKeyType.Legacy, testnet ? LitecoinTatum.Instance.Testnet : LitecoinTatum.Instance.Mainnet)
+                .ToString();
+        }
+
 
 
         public async Task<Litecoin> GetLitecoinBlockchainInfo()
@@ -137,29 +162,7 @@ namespace Tatum
 
 
 
-        public async Task<Litecoin> GenerateLitecoinDepositAddressFromPublicKey(string xpub, int index)
-        {
-
-
-            var stringResult = await GetSecureRequest($"address/{xpub}/{index}");
-
-            var result = JsonConvert.DeserializeObject<Litecoin>(stringResult);
-
-            return result;
-        }
-
-
-        public async Task<Litecoin> GenerateLitecoinPrivateKey(string index, int mnemonic)
-        {
-
-            string parameters = "{\"index\":" + "\"" + index + "" + "\",\"mnemonic\":" + "\"" + mnemonic + "" + "\"}";
-
-            var stringResult = await PostSecureRequest($"wallet/priv",parameters);
-
-            var result = JsonConvert.DeserializeObject<Litecoin>(stringResult);
-
-            return result;
-        }
+      
 
 
 
